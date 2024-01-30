@@ -1,0 +1,63 @@
+# to load data into postgres
+psql -h 127.0.0.1 -U awaisakram64 -d postgres -c "\\copy green_tripdata FROM /workspaces/awaisakram64-Data-Engineering-Zoomcamp-2024/green_tripdata_2019-09.csv WITH CSV HEADER DELIMITER ','"
+
+
+1)--rm
+2)docker run -it --entrypoint bash python:3.9
+For querry:
+run below command in bash terminal
+docker run -it \
+  -e POSTGRES_USER="root" \
+  -e POSTGRES_PASSWORD="root" \
+  -e POSTGRES_DB="ny_taxi" \
+  -v $(pwd)/ny_taxi_postgres_data:/var/lib/postgresql/data \
+  -p 5432:5432 \
+  postgres:13
+open new bash terminal :
+pip install jupyter notebook
+jupyter notebook
+open new bash terminal :
+pip install pgcli
+pgcli -h localhost -p 5432 -u root -d ny_taxi
+then write password root
+/dt to check tables
+then run jupyter notebook and back here
+and run below :
+3)SELECT COUNT(*) as trip_count
+FROM green_tripdata
+WHERE lpep_pickup_datetime LIKE '2019-09-18%' AND lpep_dropoff_datetime LIKE '2019-09-18%';
+4)SELECT DATE(lpep_pickup_datetime) AS pickup_day, MAX(trip_distance) AS max_distance
+FROM green_tripdata
+GROUP BY DATE(lpep_pickup_datetime)
+ORDER BY max_distance DESC
+LIMIT 1;
+5)SELECT taxi_zone_lookup."Borough" AS pickup_borough, SUM(green_tripdata."total_amount") AS total_amount_sum
+FROM green_tripdata
+LEFT JOIN taxi_zone_lookup
+ON green_tripdata."PULocationID" = taxi_zone_lookup."LocationID"
+WHERE DATE(green_tripdata."lpep_pickup_datetime") = '2019-09-18'
+AND taxi_zone_lookup."Borough" <> 'Unknown'
+GROUP BY 1
+HAVING SUM(green_tripdata."total_amount") > 50000
+ORDER BY total_amount_sum DESC
+LIMIT 3;
+6)SELECT
+    dropoff_zone."Zone" AS dropoff_zone_name,
+    MAX(green_tripdata."tip_amount") AS largest_tip
+FROM
+    green_tripdata
+JOIN
+    taxi_zone_lookup AS pickup_zone
+    ON green_tripdata."PULocationID" = pickup_zone."LocationID"
+JOIN
+    taxi_zone_lookup AS dropoff_zone
+    ON green_tripdata."DOLocationID" = dropoff_zone."LocationID"
+WHERE
+    pickup_zone."Zone" = 'Astoria'
+    AND green_tripdata."lpep_pickup_datetime" >= '2019-09-01 00:00:00'
+    AND green_tripdata."lpep_pickup_datetime" < '2019-10-01 00:00:00'
+GROUP BY
+    dropoff_zone."Zone"
+ORDER BY
+    largest_tip DESC
+LIMIT 1;
